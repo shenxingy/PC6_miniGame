@@ -89,7 +89,7 @@ always @(posedge iVGA_CLK) begin
         move_counter <= 0;
 
         // Update position based on input signals, with boundary checks
-        if (move_left && spaceship_x > 0)
+        if (move_left && spaceship_x > 5)
             spaceship_x <= spaceship_x - 5;
         if (move_right && spaceship_x < 624)  // 640 - spaceship width (16)
             spaceship_x <= spaceship_x + 5;
@@ -98,17 +98,32 @@ always @(posedge iVGA_CLK) begin
     end
 end
 
+// Define the size of the monsters and their properties
+parameter MONSTER_SIZE = 16;  // Monsters are 16x16 pixels
+parameter NUM_MONSTERS = 5;   // Number of monsters
+
+// Monster coordinates and active state
+reg [9:0] monster_x [0:NUM_MONSTERS-1];  // X coordinates of monsters
+reg [8:0] monster_y [0:NUM_MONSTERS-1];  // Y coordinates of monsters
+reg monster_active [0:NUM_MONSTERS-1];   // Active state of monsters
+
+integer j;
+
+
 always @(posedge iVGA_CLK or negedge iRST_n) begin
     if (!iRST_n) begin
-        // Reset all bullets to inactive state
         for (i = 0; i < 8; i = i + 1) begin
             bullet_active[i] <= 1'b0;
             bullet_x[i] <= 10'b0;
             bullet_y[i] <= 9'b0;
         end
-        bullet_counter <= 21'd0;  // Reset the bullet counter
+        for (j = 0; j < NUM_MONSTERS; j = j + 1) begin
+            monster_x[j] <= 10'd50 + (j * (MONSTER_SIZE + 10)); // Space monsters evenly
+            monster_y[j] <= 9'd50;  // Place monsters at the top
+            monster_active[j] <= 1'b1;  // All monsters are active initially
+        end
+        bullet_counter <= 21'd0;
     end else begin
-        // Bullet firing logic
         if (fire) begin
             reg found_slot;  // Flag to indicate if an empty bullet slot was found
             found_slot = 1'b0;  // Initialize to not found
@@ -123,8 +138,7 @@ always @(posedge iVGA_CLK or negedge iRST_n) begin
             end
         end
 
-        // Bullet movement logic
-        if (bullet_counter == 21'd250000) begin
+        if (bullet_counter == 21'd100000) begin
             bullet_counter <= 0;  // Reset the counter
             for (i = 0; i < 8; i = i + 1) begin
                 if (bullet_active[i]) begin
@@ -137,9 +151,21 @@ always @(posedge iVGA_CLK or negedge iRST_n) begin
         end else begin
             bullet_counter <= bullet_counter + 1;  // Increment the bullet counter
         end
+
+        for (j = 0; j < NUM_MONSTERS; j = j + 1) begin
+            if (monster_active[j]) begin
+                for (i = 0; i < 8; i = i + 1) begin
+                    if (bullet_active[i] &&
+                        bullet_x[i] >= monster_x[j] && bullet_x[i] < monster_x[j] + MONSTER_SIZE &&
+                        bullet_y[i] >= monster_y[j] && bullet_y[i] < monster_y[j] + MONSTER_SIZE) begin
+                        monster_active[j] <= 1'b0;  // Deactivate the monster
+                        bullet_active[i] <= 1'b0;   // Deactivate the bullet
+                    end
+                end
+            end
+        end
     end
 end
-
 
 // Rendering logic
 wire [9:0] pixel_x = ADDR % 640;  // Current pixel x-coordinate
@@ -166,10 +192,26 @@ endgenerate
 // Combine all bullet hit conditions into a single signal
 assign is_bullet = |bullet_hit;
 
-// Assign colors: spaceship in green, bullets in yellow, and background
-assign b_data = is_spaceship ? 8'h00 : (is_bullet ? 8'hFF : 8'h00);
-assign g_data = is_spaceship ? 8'hFF : (is_bullet ? 8'hFF : 8'h00);
-assign r_data = is_spaceship ? 8'h00 : (is_bullet ? 8'h00 : 8'h00);
+// Rendering logic for monsters
+wire [NUM_MONSTERS-1:0] monster_hit;  // Array for monster hit detection
+genvar m;
+
+generate
+    for (m = 0; m < NUM_MONSTERS; m = m + 1) begin : monster_rendering
+        assign monster_hit[m] = monster_active[m] &&
+                                (pixel_x >= monster_x[m]) && (pixel_x < monster_x[m] + MONSTER_SIZE) &&
+                                (pixel_y >= monster_y[m]) && (pixel_y < monster_y[m] + MONSTER_SIZE);
+    end
+endgenerate
+
+// Combine all monster hit signals
+wire is_monster = |monster_hit;
+
+// Assign colors: spaceship in green, bullets in yellow, monsters in red, and background
+assign b_data = is_spaceship ? 8'h00 : (is_bullet ? 8'hFF : (is_monster ? 8'h00 : 8'h00));
+assign g_data = is_spaceship ? 8'hFF : (is_bullet ? 8'hFF : (is_monster ? 8'h00 : 8'h00));
+assign r_data = is_spaceship ? 8'h00 : (is_bullet ? 8'h00 : (is_monster ? 8'hFF : 8'h00));
+
 
 // Delay the iHD, iVD, iDEN signals by one clock cycle
 always @(negedge iVGA_CLK) begin
