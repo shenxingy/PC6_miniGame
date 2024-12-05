@@ -98,41 +98,48 @@ always @(posedge iVGA_CLK) begin
     end
 end
 
-// Bullet control logic
 always @(posedge iVGA_CLK or negedge iRST_n) begin
     if (!iRST_n) begin
+        // Reset all bullets to inactive state
         for (i = 0; i < 8; i = i + 1) begin
             bullet_active[i] <= 1'b0;
+            bullet_x[i] <= 10'b0;
+            bullet_y[i] <= 9'b0;
         end
+        bullet_counter <= 21'd0;  // Reset the bullet counter
     end else begin
-        // Fire bullet on space key press
+        // Bullet firing logic
         if (fire) begin
+            reg found_slot;  // Flag to indicate if an empty bullet slot was found
+            found_slot = 1'b0;  // Initialize to not found
+            
             for (i = 0; i < 8; i = i + 1) begin
-                if (!bullet_active[i]) begin
-                    bullet_x[i] <= spaceship_x + 8;  // Center bullet with spaceship
+                if (!bullet_active[i] && !found_slot) begin
+                    bullet_x[i] <= spaceship_x + 8;  // Align the bullet with the spaceship
                     bullet_y[i] <= spaceship_y;
                     bullet_active[i] <= 1'b1;
-                    break;
+                    found_slot = 1'b1;  // Mark as found
                 end
             end
         end
 
-        // Move active bullets
+        // Bullet movement logic
         if (bullet_counter == 21'd500000) begin
-            bullet_counter <= 0;
+            bullet_counter <= 0;  // Reset the counter
             for (i = 0; i < 8; i = i + 1) begin
                 if (bullet_active[i]) begin
                     if (bullet_y[i] > 0)
-                        bullet_y[i] <= bullet_y[i] - 5;
+                        bullet_y[i] <= bullet_y[i] - 5;  // Move the bullet upwards
                     else
-                        bullet_active[i] <= 1'b0;  // Deactivate bullet when off screen
+                        bullet_active[i] <= 1'b0;  // Deactivate the bullet when off-screen
                 end
             end
         end else begin
-            bullet_counter <= bullet_counter + 1;
+            bullet_counter <= bullet_counter + 1;  // Increment the bullet counter
         end
     end
 end
+
 
 // Rendering logic
 wire [9:0] pixel_x = ADDR % 640;  // Current pixel x-coordinate
@@ -142,19 +149,27 @@ wire [8:0] pixel_y = ADDR / 640;  // Current pixel y-coordinate
 wire is_spaceship = (pixel_x >= spaceship_x) && (pixel_x < spaceship_x + 16) &&
                     (pixel_y >= spaceship_y) && (pixel_y < spaceship_y + 16);
 
-// Check if the current pixel is within any active bullet
-wire is_bullet = |((pixel_x >= bullet_x[0] && pixel_x < bullet_x[0] + 4 &&
-                    pixel_y >= bullet_y[0] && pixel_y < bullet_y[0] + 8 && bullet_active[0]) ||
-                   (pixel_x >= bullet_x[1] && pixel_x < bullet_x[1] + 4 &&
-                    pixel_y >= bullet_y[1] && pixel_y < bullet_y[1] + 8 && bullet_active[1]) ||
-                   // Repeat for remaining bullets
-                   (pixel_x >= bullet_x[7] && pixel_x < bullet_x[7] + 4 &&
-                    pixel_y >= bullet_y[7] && pixel_y < bullet_y[7] + 8 && bullet_active[7]));
+
+// Create a register array to store bullet hit detection results
+wire [7:0] bullet_hit;  // Array for bullet hit detection
+genvar x;
+
+// Generate logic for each bullet to check if the current pixel overlaps
+generate
+    for (x = 0; x < 8; x = x + 1) begin : bullet_check
+        assign bullet_hit[x] = (pixel_x >= bullet_x[x] && pixel_x < bullet_x[x] + 4 &&
+                                pixel_y >= bullet_y[x] && pixel_y < bullet_y[x] + 8 &&
+                                bullet_active[x]);
+    end
+endgenerate
+
+// Combine all bullet hit conditions into a single signal
+assign is_bullet = |bullet_hit;
 
 // Assign colors: spaceship in green, bullets in yellow, and background
-assign b_data = is_spaceship ? 8'h00 : (is_bullet ? 8'hFF : bgr_data[23:16]);
-assign g_data = is_spaceship ? 8'hFF : (is_bullet ? 8'hFF : bgr_data[15:8]);
-assign r_data = is_spaceship ? 8'h00 : (is_bullet ? 8'h00 : bgr_data[7:0]);
+assign b_data = is_spaceship ? 8'h00 : (is_bullet ? 8'hFF : 8'h00);
+assign g_data = is_spaceship ? 8'hFF : (is_bullet ? 8'hFF : 8'h00);
+assign r_data = is_spaceship ? 8'h00 : (is_bullet ? 8'h00 : 8'h00);
 
 // Delay the iHD, iVD, iDEN signals by one clock cycle
 always @(negedge iVGA_CLK) begin
