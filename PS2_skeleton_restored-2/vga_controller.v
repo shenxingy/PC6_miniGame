@@ -46,6 +46,13 @@ reg [20:0] bullet_counter = 0;
 // Register to track remaining enemies
 reg [3:0] remaining_enemies;  // Supports up to 15 enemies
 
+// Game over flag
+reg game_over = 1'b0;
+
+// Downward movement parameters for monsters
+parameter MONSTER_MOVE_INTERVAL = 21'd1500000;
+reg [20:0] monster_move_counter = 0; 
+
 assign rst = ~iRST_n;
 
 // Video sync generator instance
@@ -86,24 +93,25 @@ img_index img_index_inst (
 always @(posedge VGA_CLK_n)
     bgr_data <= bgr_data_raw;
 
-// Update the position of the spaceship
+// Update the position of the spaceship only if not game over
 always @(posedge iVGA_CLK) begin
-    if (move_counter == 21'd1000000) begin
-        move_counter <= 0;
-
-        // Update position based on input signals, with boundary checks
-        if (move_left && spaceship_x > 5)
-            spaceship_x <= spaceship_x - 5;
-        if (move_right && spaceship_x < 624)  // 640 - spaceship width (16)
-            spaceship_x <= spaceship_x + 5;
-    end else begin
-        move_counter <= move_counter + 1;
+    if (!game_over) begin
+        if (move_counter == 21'd1000000) begin
+            move_counter <= 0;
+            // Update position based on input signals, with boundary checks
+            if (move_left && spaceship_x > 5)
+                spaceship_x <= spaceship_x - 5;
+            if (move_right && spaceship_x < 624)  // 640 - spaceship width (16)
+                spaceship_x <= spaceship_x + 5;
+        end else begin
+            move_counter <= move_counter + 1;
+        end
     end
 end
 
 // Define the size of the monsters and their properties
 parameter MONSTER_SIZE = 32;  // Monsters are 32x32 pixels
-parameter NUM_MONSTERS = 10;   // Number of monsters
+parameter NUM_MONSTERS = 10;  // Number of monsters
 
 // Monster coordinates and active state
 reg [9:0] monster_x [0:NUM_MONSTERS-1];  // X coordinates of monsters
@@ -126,45 +134,78 @@ always @(posedge iVGA_CLK or negedge iRST_n) begin
         end
         bullet_counter <= 21'd0;
         remaining_enemies <= NUM_MONSTERS;  // Initialize remaining enemies
+        monster_move_counter <= 21'd0;
+        game_over <= 1'b0;
     end else begin
-        if (fire) begin
-            reg found_slot;  // Flag to indicate if an empty bullet slot was found
-            found_slot = 1'b0;  // Initialize to not found
-            
-            for (i = 0; i < 8; i = i + 1) begin
-                if (!bullet_active[i] && !found_slot) begin
-                    bullet_x[i] <= spaceship_x + 8;  // Align the bullet with the spaceship
-                    bullet_y[i] <= spaceship_y;
-                    bullet_active[i] <= 1'b1;
-                    found_slot = 1'b1;  // Mark as found
+        if (!game_over) begin
+            // Monster downward movement
+            if (monster_move_counter == MONSTER_MOVE_INTERVAL) begin
+                monster_move_counter <= 21'd0;
+                for (j = 0; j < NUM_MONSTERS; j = j + 1) begin
+                    if (monster_active[j]) begin
+                        monster_y[j] <= monster_y[j] + 5;  // Move monster down
+                    end
                 end
+            end else begin
+                monster_move_counter <= monster_move_counter + 1;
             end
-        end
 
-        if (bullet_counter == 21'd100000) begin
-            bullet_counter <= 0;  // Reset the counter
-            for (i = 0; i < 8; i = i + 1) begin
-                if (bullet_active[i]) begin
-                    if (bullet_y[i] > 0)
-                        bullet_y[i] <= bullet_y[i] - 5;  // Move the bullet upwards
-                    else
-                        bullet_active[i] <= 1'b0;  // Deactivate the bullet when off-screen
-                end
-            end
-        end else begin
-            bullet_counter <= bullet_counter + 1;  // Increment the bullet counter
-        end
-
-        for (j = 0; j < NUM_MONSTERS; j = j + 1) begin
-            if (monster_active[j]) begin
+            // Firing bullets
+            if (fire) begin
+                reg found_slot;  
+                found_slot = 1'b0;  
+                
                 for (i = 0; i < 8; i = i + 1) begin
-                    if (bullet_active[i] &&
-                        bullet_x[i] >= monster_x[j] && bullet_x[i] < monster_x[j] + MONSTER_SIZE &&
-                        bullet_y[i] >= monster_y[j] && bullet_y[i] < monster_y[j] + MONSTER_SIZE) begin
-                        monster_active[j] <= 1'b0;  // Deactivate the monster
-                        bullet_active[i] <= 1'b0;   // Deactivate the bullet
-                        if (remaining_enemies > 0)
-                            remaining_enemies <= remaining_enemies - 1;  // Decrement the count
+                    if (!bullet_active[i] && !found_slot) begin
+                        bullet_x[i] <= spaceship_x + 8;  // Align the bullet with the spaceship
+                        bullet_y[i] <= spaceship_y;
+                        bullet_active[i] <= 1'b1;
+                        found_slot = 1'b1;
+                    end
+                end
+            end
+
+            // Bullet movement
+            if (bullet_counter == 21'd100000) begin
+                bullet_counter <= 0;  // Reset the counter
+                for (i = 0; i < 8; i = i + 1) begin
+                    if (bullet_active[i]) begin
+                        if (bullet_y[i] > 0)
+                            bullet_y[i] <= bullet_y[i] - 5;  // Move the bullet upwards
+                        else
+                            bullet_active[i] <= 1'b0;  // Deactivate the bullet when off-screen
+                    end
+                end
+            end else begin
+                bullet_counter <= bullet_counter + 1;  // Increment the bullet counter
+            end
+
+            // Check bullet-monster collisions
+            for (j = 0; j < NUM_MONSTERS; j = j + 1) begin
+                if (monster_active[j]) begin
+                    for (i = 0; i < 8; i = i + 1) begin
+                        if (bullet_active[i] &&
+                            bullet_x[i] >= monster_x[j] && bullet_x[i] < monster_x[j] + MONSTER_SIZE &&
+                            bullet_y[i] >= monster_y[j] && bullet_y[i] < monster_y[j] + MONSTER_SIZE) begin
+                            monster_active[j] <= 1'b0;  // Deactivate the monster
+                            bullet_active[i] <= 1'b0;   // Deactivate the bullet
+                            if (remaining_enemies > 0)
+                                remaining_enemies <= remaining_enemies - 1;
+                        end
+                    end
+                end
+            end
+
+            // Check game over conditions: monster at bottom or collision with spaceship
+            for (j = 0; j < NUM_MONSTERS; j = j + 1) begin
+                if (monster_active[j]) begin
+                    // If monster reaches the spaceship line or below
+                    if (monster_y[j] + MONSTER_SIZE >= spaceship_y)
+                        game_over <= 1'b1;
+                    // Check monster-spaceship collision
+                    if ((monster_x[j] < spaceship_x + 16) && (monster_x[j] + MONSTER_SIZE > spaceship_x) &&
+                        (monster_y[j] < spaceship_y + 16) && (monster_y[j] + MONSTER_SIZE > spaceship_y)) begin
+                        game_over <= 1'b1;
                     end
                 end
             end
@@ -181,10 +222,8 @@ wire is_spaceship = (pixel_x >= spaceship_x) && (pixel_x < spaceship_x + 16) &&
                     (pixel_y >= spaceship_y) && (pixel_y < spaceship_y + 16);
 
 // Create a register array to store bullet hit detection results
-wire [7:0] bullet_hit;  // Array for bullet hit detection
+wire [7:0] bullet_hit;  
 genvar x;
-
-// Generate logic for each bullet to check if the current pixel overlaps
 generate
     for (x = 0; x < 8; x = x + 1) begin : bullet_check
         assign bullet_hit[x] = (pixel_x >= bullet_x[x] && pixel_x < bullet_x[x] + 4 &&
@@ -193,13 +232,12 @@ generate
     end
 endgenerate
 
-// Combine all bullet hit conditions into a single signal
+// Combine all bullet hit conditions
 wire is_bullet = |bullet_hit;
 
-// Rendering logic for monsters
-wire [NUM_MONSTERS-1:0] monster_hit;  // Array for monster hit detection
+// Monster rendering logic
+wire [NUM_MONSTERS-1:0] monster_hit;  
 genvar m;
-
 generate
     for (m = 0; m < NUM_MONSTERS; m = m + 1) begin : monster_rendering
         assign monster_hit[m] = monster_active[m] &&
@@ -207,16 +245,11 @@ generate
                                 (pixel_y >= monster_y[m]) && (pixel_y < monster_y[m] + MONSTER_SIZE);
     end
 endgenerate
-
-// Combine all monster hit signals
 wire is_monster = |monster_hit;
-
 
 reg [7:0] font [0:9][0:7];
 
-
 initial begin
-    
     font[0][0] = 8'b00111100;
     font[0][1] = 8'b01000010;
     font[0][2] = 8'b01000110;
@@ -225,7 +258,6 @@ initial begin
     font[0][5] = 8'b01100010;
     font[0][6] = 8'b01000010;
     font[0][7] = 8'b00111100;
-    
     
     font[1][0] = 8'b00011000;
     font[1][1] = 8'b00101000;
@@ -236,7 +268,6 @@ initial begin
     font[1][6] = 8'b00001000;
     font[1][7] = 8'b00111100;
     
-    
     font[2][0] = 8'b00111100;
     font[2][1] = 8'b01000010;
     font[2][2] = 8'b00000010;
@@ -245,7 +276,6 @@ initial begin
     font[2][5] = 8'b00010000;
     font[2][6] = 8'b00100000;
     font[2][7] = 8'b01111110;
-    
     
     font[3][0] = 8'b00111100;
     font[3][1] = 8'b01000010;
@@ -256,7 +286,6 @@ initial begin
     font[3][6] = 8'b01000010;
     font[3][7] = 8'b00111100;
     
-    
     font[4][0] = 8'b00000100;
     font[4][1] = 8'b00001100;
     font[4][2] = 8'b00010100;
@@ -265,7 +294,6 @@ initial begin
     font[4][5] = 8'b01111110;
     font[4][6] = 8'b00000100;
     font[4][7] = 8'b00000100;
-    
     
     font[5][0] = 8'b01111110;
     font[5][1] = 8'b01000000;
@@ -276,7 +304,6 @@ initial begin
     font[5][6] = 8'b01000010;
     font[5][7] = 8'b00111100;
     
-    
     font[6][0] = 8'b00111100;
     font[6][1] = 8'b01000010;
     font[6][2] = 8'b01000000;
@@ -286,7 +313,6 @@ initial begin
     font[6][6] = 8'b01000010;
     font[6][7] = 8'b00111100;
     
-
     font[7][0] = 8'b01111110;
     font[7][1] = 8'b00000010;
     font[7][2] = 8'b00000100;
@@ -296,7 +322,6 @@ initial begin
     font[7][6] = 8'b00100000;
     font[7][7] = 8'b00100000;
     
-    
     font[8][0] = 8'b00111100;
     font[8][1] = 8'b01000010;
     font[8][2] = 8'b01000010;
@@ -305,7 +330,6 @@ initial begin
     font[8][5] = 8'b01000010;
     font[8][6] = 8'b01000010;
     font[8][7] = 8'b00111100;
-    
     
     font[9][0] = 8'b00111100;
     font[9][1] = 8'b01000010;
@@ -345,40 +369,34 @@ parameter SCORE_Y = 10;   // Starting Y position
 wire [2:0] tens_row = pixel_y - SCORE_Y;
 wire [2:0] tens_col = pixel_x - SCORE_X;
 wire is_tens = (pixel_x >= SCORE_X && pixel_x < SCORE_X + DIGIT_WIDTH) &&
-              (pixel_y >= SCORE_Y && pixel_y < SCORE_Y + DIGIT_HEIGHT);
+               (pixel_y >= SCORE_Y && pixel_y < SCORE_Y + DIGIT_HEIGHT);
 
 // Check if the current pixel is within the units digit area
 wire [2:0] units_row = pixel_y - SCORE_Y;
 wire [2:0] units_col = pixel_x - (SCORE_X + DIGIT_WIDTH + 2);  // 2 pixels spacing
 wire is_units = (pixel_x >= (SCORE_X + DIGIT_WIDTH + 2) && pixel_x < (SCORE_X + 2*DIGIT_WIDTH + 2)) &&
-               (pixel_y >= SCORE_Y && pixel_y < SCORE_Y + DIGIT_HEIGHT);
-
+                (pixel_y >= SCORE_Y && pixel_y < SCORE_Y + DIGIT_HEIGHT);
 
 wire tens_bit = is_tens ? ((get_font(tens, tens_row) >> (7 - tens_col)) & 1'b1) : 1'b0;
 wire units_bit = is_units ? ((get_font(units, units_row) >> (7 - units_col)) & 1'b1) : 1'b0;
-
 wire is_score_number = tens_bit || units_bit;
 
-// Assign colors:
-// - Spaceship in green
-// - Bullets in yellow
-// - Monsters in red
-// - Score numbers in white
-// - Background
-assign b_data = is_spaceship ? 8'h00 : 
-                (is_bullet ? 8'hFF : 
-                (is_monster ? 8'h00 : 
-                (is_score_number ? 8'hFF : 8'h00)));
+// Assign colors with game_over condition
+wire [7:0] final_b = game_over ? 8'h00 : (is_spaceship ? 8'h00 : 
+                 (is_bullet ? 8'hFF : (is_monster ? 8'h00 : 
+                 (is_score_number ? 8'hFF : 8'h00))));
 
-assign g_data = is_spaceship ? 8'hFF : 
-                (is_bullet ? 8'hFF : 
-                (is_monster ? 8'h00 : 
-                (is_score_number ? 8'hFF : 8'h00)));
+wire [7:0] final_g = game_over ? 8'h00 : (is_spaceship ? 8'hFF : 
+                 (is_bullet ? 8'hFF : (is_monster ? 8'h00 : 
+                 (is_score_number ? 8'hFF : 8'h00))));
 
-assign r_data = is_spaceship ? 8'h00 : 
-                (is_bullet ? 8'h00 : 
-                (is_monster ? 8'hFF : 
-                (is_score_number ? 8'hFF : 8'h00)));
+wire [7:0] final_r = game_over ? 8'hFF : (is_spaceship ? 8'h00 : 
+                 (is_bullet ? 8'h00 : (is_monster ? 8'hFF : 
+                 (is_score_number ? 8'hFF : 8'h00))));
+
+assign b_data = final_b;
+assign g_data = final_g;
+assign r_data = final_r;
 
 // Delay the iHD, iVD, iDEN signals by one clock cycle
 always @(negedge iVGA_CLK) begin
