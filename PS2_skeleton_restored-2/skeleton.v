@@ -55,7 +55,7 @@ module skeleton(resetn,
 	processor myprocessor(clock, ~resetn, /*ps2_key_pressed, ps2_out, lcd_write_en, lcd_write_data,*/ debug_data_in, debug_addr);
 	
 	// keyboard controller
-	PS2_Interface myps2(clock, resetn, ps2_clock, ps2_data, ps2_key_data, ps2_key_pressed, ps2_out, move_up, move_down, move_left, move_right);
+	PS2_Interface myps2(clock, resetn, ps2_clock, ps2_data, ps2_key_data, ps2_key_pressed, ps2_out, move_left, move_right, fire, pause);
 	
 	// lcd controller
 	lcd mylcd(clock, ~resetn, 1'b1, ps2_out, lcd_data, lcd_rw, lcd_en, lcd_rs, lcd_on, lcd_blon);
@@ -86,10 +86,10 @@ module skeleton(resetn,
 								 .b_data(VGA_B),
 								 .g_data(VGA_G),
 								 .r_data(VGA_R),        
-								 .move_up(move_up),
-								.move_down(move_down),
-								.move_left(move_left),
-								.move_right(move_right)
+								 .move_left(move_left),
+								 .move_right(move_right)
+								 .fire(fire)
+								 .pause(pause)
 								);
 	
 	
