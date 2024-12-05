@@ -107,10 +107,10 @@ wire is_spaceship = (pixel_x >= spaceship_x) && (pixel_x < spaceship_x + 16) &&
                     (pixel_y >= spaceship_y) && (pixel_y < spaceship_y + 16);
 
 
-// Assign colors: spaceship in green, bullets in yellow, and background
-assign b_data = is_spaceship ? 8'h00 : bgr_data[23:16];
-assign g_data = is_spaceship ? 8'hFF : bgr_data[15:8];
-assign r_data = is_spaceship ? 8'h00 : bgr_data[7:0];
+// Assign colors: spaceship in green, black background
+assign b_data = is_spaceship ? 8'h00 : 8'h00;  // Always 0 for black background
+assign g_data = is_spaceship ? 8'hFF : 8'h00;  // Green for spaceship, 0 for background
+assign r_data = is_spaceship ? 8'h00 : 8'h00;  // Always 0 for black background
 
 // Delay the iHD, iVD, iDEN signals by one clock cycle
 always @(negedge iVGA_CLK) begin
