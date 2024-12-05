@@ -74,7 +74,7 @@ img_data img_data_inst (
 );
 
 img_index img_index_inst (
-    .address(index),
+    .address(index), 
     .clock(iVGA_CLK),
     .q(bgr_data_raw)
 );
@@ -124,7 +124,7 @@ always @(posedge iVGA_CLK or negedge iRST_n) begin
         end
 
         // Bullet movement logic
-        if (bullet_counter == 21'd500000) begin
+        if (bullet_counter == 21'd250000) begin
             bullet_counter <= 0;  // Reset the counter
             for (i = 0; i < 8; i = i + 1) begin
                 if (bullet_active[i]) begin
