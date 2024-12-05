@@ -99,8 +99,8 @@ always @(posedge iVGA_CLK) begin
 end
 
 // Define the size of the monsters and their properties
-parameter MONSTER_SIZE = 16;  // Monsters are 16x16 pixels
-parameter NUM_MONSTERS = 5;   // Number of monsters
+parameter MONSTER_SIZE = 32;  // Monsters are 16x16 pixels
+parameter NUM_MONSTERS = 10;   // Number of monsters
 
 // Monster coordinates and active state
 reg [9:0] monster_x [0:NUM_MONSTERS-1];  // X coordinates of monsters
