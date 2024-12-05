@@ -353,11 +353,10 @@ wire [2:0] units_col = pixel_x - (SCORE_X + DIGIT_WIDTH + 2);  // 2 pixels spaci
 wire is_units = (pixel_x >= (SCORE_X + DIGIT_WIDTH + 2) && pixel_x < (SCORE_X + 2*DIGIT_WIDTH + 2)) &&
                (pixel_y >= SCORE_Y && pixel_y < SCORE_Y + DIGIT_HEIGHT);
 
-// 获取对应的字体位
-wire tens_bit = is_tens ? (get_font(tens, tens_row) >> tens_col) & 1'b1 : 1'b0;
-wire units_bit = is_units ? (get_font(units, units_row) >> units_col) & 1'b1 : 1'b0;
 
-// 组合数字像素
+wire tens_bit = is_tens ? ((get_font(tens, tens_row) >> (7 - tens_col)) & 1'b1) : 1'b0;
+wire units_bit = is_units ? ((get_font(units, units_row) >> (7 - units_col)) & 1'b1) : 1'b0;
+
 wire is_score_number = tens_bit || units_bit;
 
 // Assign colors:
