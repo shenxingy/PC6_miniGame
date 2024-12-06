@@ -97,23 +97,6 @@ task reset_game;
             bullet_x[i] <= 0;
             bullet_y[i] <= 0;
         end
-        bullet_counter <= 21'd0;
-        remaining_enemies <= NUM_MONSTERS;  // Initialize remaining enemies
-        monster_move_counter <= 21'd0;
-        game_over <= 1'b0;
-    end else begin
-        if (!game_over) begin
-            // Monster downward movement
-            if (monster_move_counter == MONSTER_MOVE_INTERVAL) begin
-                monster_move_counter <= 21'd0;
-                for (j = 0; j < NUM_MONSTERS; j = j + 1) begin
-                    if (monster_active[j]) begin
-                        monster_y[j] <= monster_y[j] + 5;  // Move monster down
-                    end
-                end
-            end else begin
-                monster_move_counter <= monster_move_counter + 1;
-            end
 
         for (j = 0; j < NUM_MONSTERS; j = j + 1) begin
             monster_x[j] <= 10'd50 + (j * (MONSTER_SIZE + 10));  
