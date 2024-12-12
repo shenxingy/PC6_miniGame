@@ -1,0 +1,39 @@
+-- null
+DEPTH = 4096;
+WIDTH = 32;
+
+ADDRESS_RADIX = DEC;
+DATA_RADIX = BIN;
+
+CONTENT
+BEGIN
+    -- nop
+0000 : 00000000000000000000000000000000;
+    -- addi $6, $0, 624           # r6 is upper limit for spaceshipx
+0001 : 00101001100000000000001001110000;
+    -- addi $7, $0, 1000000    # r7 is upper limit for move counter 
+0002 : 00101001110000010100001001000000;
+    -- addi $4, $0, 320           # r4 = 320 (r4 is spaceshipx)
+0003 : 00101001000000000000000101000000;
+    -- addi $5, $0, 0               # r5 = 0 (r5 is movecouter)
+0004 : 00101001010000000000000000000000;
+    -- bne $3, $0, -3              # reset spaceshipx and movecouter and don't do anything else if gamestatus is 1
+0005 : 00010000110000011111111111111101;
+    -- blt $5, $7, 5                 # don't move and skip to normal routine if r5<r7
+0006 : 00110001010011100000000000000101;
+    -- addi $5, $0, 0              # r5 = 0 if r5 reached upperlimit
+0007 : 00101001010000000000000000000000;
+    -- blt $4, $0, 1                 # skip leftward move attempt if r4 < 0
+0008 : 00110001000000000000000000000001;
+    -- sub $4, $4, $1             # Attempt move left by: spaceshipx=spaceshipx-moveleft
+0009 : 00000000000000000000000000000000;
+    -- blt $6, $4, 1                 # skip rightward move attempt if r4 > r6
+0010 : 00110001100010000000000000000001;
+    -- add $4, $4, $2             # Attempt move right by: spaceshipx=spaceshipx+moveright
+0011 : 00000000000000000000000000000000;
+    -- addi $5, $5, 1    #increment counter
+0012 : 00101001010010100000000000000001;
+    -- j 5    # go back to the gamestatus check line
+0013 : 00001000000000000000000000000101;
+[0014 .. 4095] : 00000000000000000000000000000000;
+END;
