@@ -10,7 +10,9 @@ module vga_controller(
     move_left,
     move_right,
     fire,
-    pause
+    pause,
+	 game_status, 
+	 spaceship_x_in
 );
 
 input iRST_n;
@@ -21,7 +23,13 @@ output reg oHS;
 output reg oVS;
 output [7:0] b_data;
 output [7:0] g_data;  
-output [7:0] r_data;                        
+output [7:0] r_data;
+// Signals to and from processor
+output game_status;
+input [31:0] spaceship_x_in;// later assign the lower 10 digits to spaceship_x
+
+// definition
+assign game_status = game_over|| win;          
 
 reg [18:0] ADDR;
 reg [23:0] bgr_data;
@@ -30,7 +38,11 @@ wire [7:0] index;
 wire [23:0] bgr_data_raw;
 wire cBLANK_n, cHS, cVS, rst;
 
-reg [9:0] spaceship_x;  // Spaceship X coordinate
+//reg [9:0] spaceship_x;  // Spaceship X coordinate
+// spaceship_x changed to read by processor
+wire [9:0] spaceship_x;
+assign spaceship_x = spaceship_x_in[9:0];
+
 reg [8:0] spaceship_y;   // Spaceship Y coordinate
 reg [20:0] move_counter = 0;      // Counter to control movement speed
 reg [3:0] remaining_enemies;  // Supports up to 15 enemies
@@ -90,7 +102,7 @@ always @(posedge VGA_CLK_n)
 task reset_game;
     integer i, j;
     begin
-        spaceship_x <= 10'd320;
+        //spaceship_x <= 10'd320;
         spaceship_y <= 9'd450;
         for (i = 0; i < 8; i = i + 1) begin
             bullet_active[i] <= 1'b0;
@@ -136,16 +148,18 @@ always @(posedge iVGA_CLK or negedge iRST_n) begin
             reset_game();
         end 
         if (!game_over && !win) begin
-            if (move_counter == 21'd1000000) begin
-                move_counter <= 0;
-                    // Update position based on input signals, with boundary checks
-                    if (move_left && spaceship_x > 5)
-                        spaceship_x <= spaceship_x - 5;
-                    if (move_right && spaceship_x < 624)  // 640 - spaceship width (16)
-                        spaceship_x <= spaceship_x + 5;
-            end else begin
-                move_counter <= move_counter + 1;
-            end
+// space ship move logic now handled by processor
+//
+//            if (move_counter == 21'd1000000) begin
+//                move_counter <= 0;
+//                    // Update position based on input signals, with boundary checks
+//                    if (move_left && spaceship_x > 5)
+//                        spaceship_x <= spaceship_x - 5;
+//                    if (move_right && spaceship_x < 624)  // 640 - spaceship width (16)
+//                        spaceship_x <= spaceship_x + 5;
+//            end else begin
+//                move_counter <= move_counter + 1;
+//            end
 
             // Monster movement logic
             if (monster_move_counter == MONSTER_MOVE_INTERVAL) begin

@@ -52,7 +52,11 @@ module skeleton(resetn,
 	//assign clock = inclock;
 	
 	// your processor
-	processor myprocessor(clock, ~resetn, /*ps2_key_pressed, ps2_out, lcd_write_en, lcd_write_data,*/ debug_data_in, debug_addr);
+	
+	// signals to pass data from processor and vga controller
+	wire game_status;
+   wire [31:0] spaceship_x;
+	processor myprocessor(clock, ~resetn, /*ps2_key_pressed, ps2_out, lcd_write_en, lcd_write_data,*/ debug_data_in, debug_addr, move_left, move_right, game_status, spaceship_x);
 	
 	// keyboard controller
 	PS2_Interface myps2(clock, resetn, ps2_clock, ps2_data, ps2_key_data, ps2_key_pressed, ps2_out, move_left, move_right, fire, pause);
@@ -61,19 +65,28 @@ module skeleton(resetn,
 	lcd mylcd(clock, ~resetn, 1'b1, ps2_out, lcd_data, lcd_rw, lcd_en, lcd_rs, lcd_on, lcd_blon);
 	
 	// example for sending ps2 data to the first two seven segment displays
-	Hexadecimal_To_Seven_Segment hex1(ps2_out[3:0], seg1);
-	Hexadecimal_To_Seven_Segment hex2(ps2_out[7:4], seg2);
+	//Hexadecimal_To_Seven_Segment hex1(ps2_out[3:0], seg1);
+	//Hexadecimal_To_Seven_Segment hex2(ps2_out[7:4], seg2);
 	
 	// the other seven segment displays are currently set to 0
-	Hexadecimal_To_Seven_Segment hex3(4'b0, seg3);
-	Hexadecimal_To_Seven_Segment hex4(4'b0, seg4);
-	Hexadecimal_To_Seven_Segment hex5(4'b0, seg5);
+	// Edit: changed to display space_ship_x
+	Hexadecimal_To_Seven_Segment hex1(spaceship_x[3:0], seg1);
+	Hexadecimal_To_Seven_Segment hex2(spaceship_x[7:4], seg2);
+	Hexadecimal_To_Seven_Segment hex3(spaceship_x[11:8], seg3);
+	Hexadecimal_To_Seven_Segment hex4(spaceship_x[15:12], seg4);
+	Hexadecimal_To_Seven_Segment hex5(spaceship_x[19:16], seg5);
+
+//	Hexadecimal_To_Seven_Segment hex1({3'b0, move_left}, seg1);
+//	Hexadecimal_To_Seven_Segment hex2({3'b0, move_right}, seg2);
+//	Hexadecimal_To_Seven_Segment hex3({3'b0, game_status}, seg3);
+//	Hexadecimal_To_Seven_Segment hex4({3'b0, resetn}, seg4);
+//	Hexadecimal_To_Seven_Segment hex5(4'b0, seg5);
 	Hexadecimal_To_Seven_Segment hex6(4'b0, seg6);
 	Hexadecimal_To_Seven_Segment hex7(4'b0, seg7);
-	Hexadecimal_To_Seven_Segment hex8(4'b0, seg8);
+	Hexadecimal_To_Seven_Segment hex8({3'b0,game_status}, seg8);
 	
 	// some LEDs that you could use for debugging if you wanted
-	assign leds = 8'b00101011;
+	assign leds = spaceship_x[7:0];
 		
 	// VGA
 	Reset_Delay			r0	(.iCLK(CLOCK_50),.oRESET(DLY_RST)	);
@@ -89,7 +102,9 @@ module skeleton(resetn,
 								 .move_left(move_left),
 								 .move_right(move_right),
 								 .fire(fire),
-								 .pause(pause)
+								 .pause(pause),
+								 .game_status(game_status), 
+								 .spaceship_x_in(spaceship_x)
 								);
 	
 	
