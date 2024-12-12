@@ -87,8 +87,8 @@ module skeleton(resetn,
 								 .g_data(VGA_G),
 								 .r_data(VGA_R),        
 								 .move_left(move_left),
-								 .move_right(move_right)
-								 .fire(fire)
+								 .move_right(move_right),
+								 .fire(fire),
 								 .pause(pause)
 								);
 	
