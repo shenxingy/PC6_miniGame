@@ -83,7 +83,7 @@ module skeleton(resetn,
 //	Hexadecimal_To_Seven_Segment hex5(4'b0, seg5);
 	Hexadecimal_To_Seven_Segment hex6(4'b0, seg6);
 	Hexadecimal_To_Seven_Segment hex7(4'b0, seg7);
-	Hexadecimal_To_Seven_Segment hex8({3'b0,clock}, seg8);
+	Hexadecimal_To_Seven_Segment hex8({3'b0,game_status}, seg8);
 	
 	// some LEDs that you could use for debugging if you wanted
 	assign leds = spaceship_x[7:0];

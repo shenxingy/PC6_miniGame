@@ -29,7 +29,7 @@ output game_status;
 input [31:0] spaceship_x_in;// later assign the lower 10 digits to spaceship_x
 
 // definition
-assign game_status = (game_over|| win) && pause;          
+assign game_status = game_over|| win;          
 
 reg [18:0] ADDR;
 reg [23:0] bgr_data;
