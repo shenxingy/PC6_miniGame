@@ -52,7 +52,7 @@ module processor(clock, reset, /*ps2_key_pressed, ps2_out, lcd_write, lcd_data,*
 		  move_left,
 		  move_right,
 		  game_status,
-		  space_ship_x
+		  spaceship_x
     );
 
     /** PROCESSOR **/

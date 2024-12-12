@@ -65,19 +65,28 @@ module skeleton(resetn,
 	lcd mylcd(clock, ~resetn, 1'b1, ps2_out, lcd_data, lcd_rw, lcd_en, lcd_rs, lcd_on, lcd_blon);
 	
 	// example for sending ps2 data to the first two seven segment displays
-	Hexadecimal_To_Seven_Segment hex1(ps2_out[3:0], seg1);
-	Hexadecimal_To_Seven_Segment hex2(ps2_out[7:4], seg2);
+	//Hexadecimal_To_Seven_Segment hex1(ps2_out[3:0], seg1);
+	//Hexadecimal_To_Seven_Segment hex2(ps2_out[7:4], seg2);
 	
 	// the other seven segment displays are currently set to 0
-	Hexadecimal_To_Seven_Segment hex3(4'b0, seg3);
-	Hexadecimal_To_Seven_Segment hex4(4'b0, seg4);
-	Hexadecimal_To_Seven_Segment hex5(4'b0, seg5);
+	// Edit: changed to display space_ship_x
+	Hexadecimal_To_Seven_Segment hex1(spaceship_x[3:0], seg1);
+	Hexadecimal_To_Seven_Segment hex2(spaceship_x[7:4], seg2);
+	Hexadecimal_To_Seven_Segment hex3(spaceship_x[11:8], seg3);
+	Hexadecimal_To_Seven_Segment hex4(spaceship_x[15:12], seg4);
+	Hexadecimal_To_Seven_Segment hex5(spaceship_x[19:16], seg5);
+
+//	Hexadecimal_To_Seven_Segment hex1({3'b0, move_left}, seg1);
+//	Hexadecimal_To_Seven_Segment hex2({3'b0, move_right}, seg2);
+//	Hexadecimal_To_Seven_Segment hex3({3'b0, game_status}, seg3);
+//	Hexadecimal_To_Seven_Segment hex4({3'b0, resetn}, seg4);
+//	Hexadecimal_To_Seven_Segment hex5(4'b0, seg5);
 	Hexadecimal_To_Seven_Segment hex6(4'b0, seg6);
 	Hexadecimal_To_Seven_Segment hex7(4'b0, seg7);
-	Hexadecimal_To_Seven_Segment hex8(4'b0, seg8);
+	Hexadecimal_To_Seven_Segment hex8({3'b0,clock}, seg8);
 	
 	// some LEDs that you could use for debugging if you wanted
-	assign leds = 8'b00101011;
+	assign leds = spaceship_x[7:0];
 		
 	// VGA
 	Reset_Delay			r0	(.iCLK(CLOCK_50),.oRESET(DLY_RST)	);
