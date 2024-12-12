@@ -52,7 +52,11 @@ module skeleton(resetn,
 	//assign clock = inclock;
 	
 	// your processor
-	processor myprocessor(clock, ~resetn, /*ps2_key_pressed, ps2_out, lcd_write_en, lcd_write_data,*/ debug_data_in, debug_addr);
+	
+	// signals to pass data from processor and vga controller
+	wire game_status;
+   wire [31:0] spaceship_x;
+	processor myprocessor(clock, ~resetn, /*ps2_key_pressed, ps2_out, lcd_write_en, lcd_write_data,*/ debug_data_in, debug_addr, move_left, move_right, game_status, spaceship_x);
 	
 	// keyboard controller
 	PS2_Interface myps2(clock, resetn, ps2_clock, ps2_data, ps2_key_data, ps2_key_pressed, ps2_out, move_left, move_right, fire, pause);
@@ -89,7 +93,9 @@ module skeleton(resetn,
 								 .move_left(move_left),
 								 .move_right(move_right),
 								 .fire(fire),
-								 .pause(pause)
+								 .pause(pause),
+								 .game_status(game_status), 
+								 .spaceship_x_in(spaceship_x)
 								);
 	
 	

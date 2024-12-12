@@ -10,7 +10,9 @@ module vga_controller(
     move_left,
     move_right,
     fire,
-    pause
+    pause,
+	 game_status, 
+	 spaceship_x_in
 );
 
 input iRST_n;
@@ -21,7 +23,12 @@ output reg oHS;
 output reg oVS;
 output [7:0] b_data;
 output [7:0] g_data;  
-output [7:0] r_data;                        
+output [7:0] r_data;
+// Signals to and from processor
+output game_status;
+input [31:0] spaceship_x_in;// later assign the lower 10 digits to spaceship_x
+// definition
+assign game_status = (game_over|| win) && pause;          
 
 reg [18:0] ADDR;
 reg [23:0] bgr_data;
