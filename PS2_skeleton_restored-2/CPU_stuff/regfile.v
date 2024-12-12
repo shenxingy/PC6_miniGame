@@ -35,14 +35,14 @@ module regfile(
 
 
    // Assign outputs using muxes for providing external signals
-   assign data_readRegA = (ctrl_readRegA == 5'd1) ? {31'd0, move_left} :
-                          (ctrl_readRegA == 5'd2) ? {31'd0, move_right} :
-                          (ctrl_readRegA == 5'd3) ? {31'd0, game_status} :
+   assign data_readRegA = (ctrl_readRegA == 32'd1) ? {31'd0, move_left} :
+                          (ctrl_readRegA == 32'd2) ? {31'd0, move_right} :
+                          (ctrl_readRegA == 32'd3) ? {31'd0, game_status} :
                           registers[ctrl_readRegA];
 
-   assign data_readRegB = (ctrl_readRegB == 5'd1) ? {31'd0, move_left} :
-                          (ctrl_readRegB == 5'd2) ? {31'd0, move_right} :
-                          (ctrl_readRegB == 5'd3) ? {31'd0, game_status} :
+   assign data_readRegB = (ctrl_readRegB == 32'd1) ? {31'd0, move_left} :
+                          (ctrl_readRegB == 32'd2) ? {31'd0, move_right} :
+                          (ctrl_readRegB == 32'd3) ? {31'd0, game_status} :
                           registers[ctrl_readRegB];
 
    // Output spaceship X-coordinate for the VGA controller
