@@ -1,4 +1,6 @@
-module processor(clock, reset, /*ps2_key_pressed, ps2_out, lcd_write, lcd_data,*/ dmem_data_in, dmem_address);
+module processor(clock, reset, /*ps2_key_pressed, ps2_out, lcd_write, lcd_data,*/ dmem_data_in, dmem_address,
+	move_left, move_right, game_status, spaceship_x
+);
 
 	input 			clock, reset/*, ps2_key_pressed*/;
 	//input 	[7:0]	ps2_out;
@@ -14,6 +16,12 @@ module processor(clock, reset, /*ps2_key_pressed, ps2_out, lcd_write, lcd_data,*
 	// your processor here
 	//
 	wire imem_clock, dmem_clock, processor_clock, regfile_clock;
+	
+	// New inputs for external signals, can be read from register $1-3
+   input move_left, move_right, game_status;
+	// New output, can be written at register $4
+   output [31:0] spaceship_x;
+	
 		
 	 assign imem_clock = ~clock;
 	 assign dmem_clock = clock;
@@ -40,7 +48,11 @@ module processor(clock, reset, /*ps2_key_pressed, ps2_out, lcd_write, lcd_data,*
         ctrl_readRegB,
         data_writeReg,
         data_readRegA,
-        data_readRegB
+        data_readRegB,
+		  move_left,
+		  move_right,
+		  game_status,
+		  space_ship_x
     );
 
     /** PROCESSOR **/
