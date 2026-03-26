@@ -1,0 +1,25 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Quartus build outputs
+output_files/
+incremental_db/
+greybox_tmp/
+db/
+simulation/
+*.jdi
+*.pin
+*.summary
+*.done
+*.rpt
+*.qws
+*.bak
+
+# Windows
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
